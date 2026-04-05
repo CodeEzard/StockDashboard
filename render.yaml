@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: stock-dashboard-backend
+    env: docker
+    plan: free
+    dockerfilePath: backend/Dockerfile
+    healthCheckPath: /companies
+    envVars:
+      - key: PORT
+        value: 8000

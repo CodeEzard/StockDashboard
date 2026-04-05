@@ -1,0 +1,10 @@
+version: '3.8'
+services:
+  backend:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/stocks.db:/app/backend/stocks.db
+    environment:
+      - PORT=8000
