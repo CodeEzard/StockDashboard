@@ -1,58 +1,45 @@
-# Stock Dashboard
+# Stock Data Intelligence Dashboard
 
-A simple stock dashboard with FastAPI backend and static frontend.
+A mini financial data platform built with FastAPI + SQLite + Chart.js.
 
-## Backend
-- FastAPI for API
-- yfinance for stock data
-- SQLAlchemy + SQLite for storage
+## Tech Stack
+| Tool | Purpose |
+|------|---------|
+| FastAPI | REST API backend |
+| SQLite + SQLAlchemy | Database |
+| Pandas + NumPy | Data processing |
+| scikit-learn | Price prediction |
+| Chart.js | Visualization |
+| Docker | Containerization |
 
-## Frontend
-- Static HTML (placeholder)
-
-## Setup
-1. Install requirements: `pip install -r requirements.txt`
-2. Run data collector: `python backend/data_collector.py`
-3. Start backend: `uvicorn backend.main:app --reload`
-4. Open `frontend/index.html` in browser
-
----
-
-## 🚀 Docker & Deployment
-
-### Build and Run Locally with Docker
-
+## Quick Start
 ```bash
-# Build the backend image
-cd backend
-docker build -t stock-dashboard-backend .
-
-# Run with SQLite DB volume
-cd ..
-docker-compose up
+git clone https://github.com/YOUR_USERNAME/StockDashboard
+cd StockDashboard/backend
+pip install -r requirements.txt
+python mock_data.py
+python migrate_mock_to_stockdata.py
+uvicorn main:app --reload
 ```
 
-- Backend will be available at http://localhost:8000
-- SQLite DB is persisted via volume mount.
+## API Endpoints
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | /companies | List all stocks |
+| GET | /data/{symbol}?days=30 | OHLCV + indicators |
+| GET | /summary/{symbol} | 52W high/low, volatility |
+| GET | /compare?symbol1=&symbol2= | Normalized comparison |
+| GET | /top-movers | Top gainers & losers |
+| GET | /predict/{symbol}?days=14 | ML price prediction |
 
-### 🌐 Deploy Free on Render.com
+## Custom Metrics
+- **Volatility Score**: 30-day rolling std of daily returns × 100
+- **Momentum Score**: % price change over last 30 days
 
-1. Push your repo to GitHub
-2. Go to [Render.com](https://render.com/)
-3. Create a new Web Service from your repo
-4. Use the included `render.yaml` (auto-detected)
-5. Health check path: `/companies`
-6. Set environment variable: `PORT=8000`
-7. Deploy!
+## Data Source
+Mock data generated using numpy random walk simulating realistic
+NSE stock price movement. Pipeline ready for live yfinance data.
 
-**Live Demo:**
-> _Paste your Render.com link here after deploy_
-
----
-
-**Pro Tips:**
-- Render.com free tier: no credit card needed
-- Add your live link above for maximum impact
-- `.dockerignore` included for smaller, faster builds
-- ML feature: Linear Regression price prediction with confidence band
-- Professional UI, fintech color scheme, and real-time data
+## Live Demo
+- Frontend: YOUR_GITHUB_PAGES_URL
+- API Docs: YOUR_RENDER_URL/docs
