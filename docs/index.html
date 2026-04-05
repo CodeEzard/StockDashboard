@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --navy-bg: #0d1117;
+            --navy-bg-light: #1f2630;
+            --navy-bg-dark: #0f141b;
+            --card-bg: #161b22;
+            --card-shadow: 0 2px 12px 0 rgba(0,0,0,0.12);
+            --text: #e6eaf3;
+            --accent-green: #2ecc40;
+            --accent-red: #ff4d4f;
+            --accent-blue: #4f8cff;
+            --border: #22304a;
+            --font: 'Inter', 'Segoe UI', Arial, sans-serif;
+        }
+        body { margin:0; font-family:var(--font); background:var(--navy-bg); color:var(--text); min-height:100vh; display:flex; }
+        .sidebar { width:200px; background:var(--navy-bg-dark); border-right:1px solid var(--border); display:flex; flex-direction:column; }
+        .company-list { flex:1; overflow-y:auto; padding:16px 0; }
+        .company-card { background:var(--card-bg); margin:0 16px 12px 16px; border-radius:10px; padding:14px 12px; display:flex; align-items:center; justify-content:space-between; cursor:pointer; border:1px solid transparent; transition:background 0.2s; }
+        .company-card.selected { border:1.5px solid var(--accent-blue); background:#1d2a44; }
+        .company-card:hover { background:#1a2336; }
+        .company-name { font-weight:600; font-size:0.9rem; }
+        .company-return { font-weight:500; font-size:0.9rem; margin-left:6px; white-space:nowrap; }
+        .company-return.positive { color:var(--accent-green); }
+        .company-return.negative { color:var(--accent-red); }
+        .main { flex:1; display:flex; flex-direction:column; min-width:0; }
+        .metrics { display:flex; gap:18px; padding:24px 32px 0 32px; }
+        .metric-card { background:var(--card-bg); border-radius:10px; padding:18px 22px; flex:1; display:flex; flex-direction:column; }
+        .metric-label { font-size:0.85rem; color:#b0b8c9; margin-bottom:6px; }
+        .metric-value { font-size:1.35rem; font-weight:700; }
+        .chart-section { padding:18px 32px 0 32px; flex:1; display:flex; flex-direction:column; min-height:0; }
+        .chart-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; flex-wrap:wrap; gap:8px; }
+        .chart-controls { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+        .time-filters { display:flex; gap:8px; }
+        .time-btn { background:var(--navy-bg-light); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:5px 14px; font-size:0.95rem; cursor:pointer; }
+        .time-btn.selected, .time-btn:hover { background:var(--accent-blue); color:#fff; border-color:var(--accent-blue); }
+        .compare-select { background:var(--navy-bg-light); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:3px 10px; font-size:0.95rem; }
+        .chart-wrap { position:relative; flex:1; min-height:280px; }
+        .disclaimer { margin-top:8px; font-size:0.85rem; color:#ffb347; display:none; }
+        .top-movers-section { padding:18px 32px; background:var(--navy-bg-dark); border-top:1px solid var(--border); }
+        .top-movers-title { font-size:1rem; font-weight:600; margin-bottom:10px; }
+        .movers-row { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:6px; }
+        .mover-card { background:var(--card-bg); border-radius:10px; padding:10px 16px; display:flex; flex-direction:column; border-left:4px solid var(--accent-green); }
+        .mover-card.loser { border-left-color:var(--accent-red); }
+        .mover-symbol { font-weight:600; font-size:0.95rem; }
+        .mover-return { font-size:1rem; font-weight:500; margin-top:2px; }
+    </style>
+</head>
+<body>
+<div class="sidebar">
+    <div class="company-list" id="company-list"></div>
+</div>
+<div class="main">
+    <div class="metrics" id="metrics"></div>
+    <div class="chart-section">
+        <div class="chart-header">
+            <span id="chart-title" style="font-size:1.1rem;font-weight:600;"></span>
+            <div class="chart-controls">
+                <label><input type="checkbox" id="compare-mode"> Compare</label>
+                <select id="compare-select" class="compare-select" style="display:none;"></select>
+                <label><input type="checkbox" id="show-prediction"> Prediction</label>
+                <div class="time-filters">
+                    <button class="time-btn" data-days="7">7D</button>
+                    <button class="time-btn selected" data-days="30">30D</button>
+                    <button class="time-btn" data-days="90">90D</button>
+                    <button class="time-btn" data-days="180">180D</button>
+                </div>
+            </div>
+        </div>
+        <div class="chart-wrap">
+            <canvas id="main-chart"></canvas>
+        </div>
+        <div class="disclaimer" id="disclaimer">For educational purposes only.</div>
+    </div>
+    <div class="top-movers-section">
+        <div class="top-movers-title">Top Movers Today</div>
+        <div class="movers-row" id="top-gainers"></div>
+        <div class="movers-row" id="top-losers"></div>
+    </div>
+</div>
+<script>
+const API = 'https://your-render-url.onrender.com';
+let companies = [], selectedSymbol = null, selectedCompare = null;
+let compareMode = false, showPrediction = false, chartDays = 30;
+let chartInstance = null;
+let isUpdating = false;
+
+async function get(url, fallback) {
+    try {
+        const r = await fetch(url);
+        if (!r.ok) throw new Error(r.status);
+        return await r.json();
+    } catch(e) {
+        console.error(url, e);
+        return fallback;
+    }
+}
+
+function renderCompanyList(returns) {
+    const el = document.getElementById('company-list');
+    el.innerHTML = '';
+    companies.forEach(c => {
+        const ret = returns[c.symbol] || 0;
+        const div = document.createElement('div');
+        div.className = 'company-card' + (c.symbol === selectedSymbol ? ' selected' : '');
+        div.onclick = () => { selectedSymbol = c.symbol; draw(); };
+        div.innerHTML = `<span class="company-name">${c.name}</span><span class="company-return ${ret>=0?'positive':'negative'}">${ret>=0?'+':''}${(ret*100).toFixed(2)}%</span>`;
+        el.appendChild(div);
+    });
+}
+
+function renderMetrics(summary, ret) {
+    const el = document.getElementById('metrics');
+    if (!summary) { el.innerHTML = ''; return; }
+    const items = [
+        ['Current Price', '₹' + summary.current_price.toFixed(2), ''],
+        ['Daily Return', (ret>=0?'+':'') + ret.toFixed(2) + '%', ret>=0?'var(--accent-green)':'var(--accent-red)'],
+        ['52W High', '₹' + summary.week52_high.toFixed(2), ''],
+        ['Volatility', summary.volatility_score.toFixed(2), ''],
+    ];
+    el.innerHTML = items.map(([l,v,c]) => `
+        <div class="metric-card">
+            <div class="metric-label">${l}</div>
+            <div class="metric-value" style="color:${c||'inherit'}">${v}</div>
+        </div>`).join('');
+}
+
+function renderMovers(gainers, losers) {
+    document.getElementById('top-gainers').innerHTML = gainers.map(m =>
+        `<div class="mover-card"><span class="mover-symbol">${m.symbol.replace('.NS','')}</span><span class="mover-return" style="color:var(--accent-green)">+${((m.daily_return||0)*100).toFixed(2)}%</span></div>`
+    ).join('');
+    document.getElementById('top-losers').innerHTML = losers.map(m =>
+        `<div class="mover-card loser"><span class="mover-symbol">${m.symbol.replace('.NS','')}</span><span class="mover-return" style="color:var(--accent-red)">${((m.daily_return||0)*100).toFixed(2)}%</span></div>`
+    ).join('');
+}
+
+function buildChart(labels, datasets) {
+    const ctx = document.getElementById('main-chart').getContext('2d');
+    if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+    chartInstance = new Chart(ctx, {
+        type: 'line',
+        data: { labels, datasets },
+        options: {
+            animation: false,
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { labels: { color: '#e6eaf3', boxWidth: 20 } } },
+            scales: {
+                x: { ticks: { color: '#b0b8c9', maxTicksLimit: 8 }, grid: { color: 'rgba(255,255,255,0.04)' } },
+                y: { ticks: { color: '#b0b8c9' }, grid: { color: 'rgba(255,255,255,0.04)' } },
+                y2: {
+                    position: 'right',
+                    ticks: { 
+                        color: '#ffb347',
+                        callback: function(value) { return value.toFixed(0); }
+                    },
+                    grid: { drawOnChartArea: false },
+                    display: true,
+                    min: 50,   // normalized data starts at 100, this gives breathing room
+                    max: 150,
+                }
+            }
+        }
+    });
+}
+
+async function draw() {
+    if (!selectedSymbol || isUpdating) return;
+    isUpdating = true;
+    document.getElementById('chart-title').textContent = companies.find(c=>c.symbol===selectedSymbol)?.name || selectedSymbol;
+
+    const [summary, data, movers] = await Promise.all([
+        get(`${API}/summary/${selectedSymbol}`, null),
+        get(`${API}/data/${selectedSymbol}?days=${chartDays}`, []),
+        get(`${API}/top-movers`, {gainers:[],losers:[]}),
+    ]);
+
+    const sidebarData = await Promise.all(companies.map(c => get(`${API}/summary/${c.symbol}`, null)));
+    const returns = {};
+    companies.forEach((c,i) => { returns[c.symbol] = sidebarData[i] ? sidebarData[i].pct_change_30d/100 : 0; });
+
+    renderCompanyList(returns);
+
+    const ret = data.length > 1 ? ((data[data.length-1].close - data[data.length-2].close) / data[data.length-2].close) * 100 : 0;
+    renderMetrics(summary, ret);
+    renderMovers(movers.gainers||[], movers.losers||[]);
+
+    const labels = data.map(d => d.date.slice(0,10));
+    const datasets = [
+        { label:'Close', data:data.map(d=>d.close), borderColor:'#4f8cff', backgroundColor:'rgba(79,140,255,0.08)', borderWidth:2, pointRadius:0, tension:0.2 },
+        { label:'MA-7',  data:data.map(d=>d.ma_7??null),  borderColor:'#2ecc40', borderWidth:1.5, pointRadius:0, borderDash:[4,2], tension:0.2 },
+        { label:'MA-30', data:data.map(d=>d.ma_30??null), borderColor:'#ff4d4f', borderWidth:1.5, pointRadius:0, borderDash:[2,2], tension:0.2 },
+    ];
+
+    if (compareMode && selectedCompare && selectedCompare !== selectedSymbol) {
+        const cmp = await get(`${API}/compare?symbol1=${selectedSymbol}&symbol2=${selectedCompare}`, []);
+        if (cmp.length) {
+            const mainClose = data[0]?.close || 100;
+            const scaledData = cmp.map(d => (d.symbol2 / 100) * mainClose);
+            datasets.push({ label: companies.find(c=>c.symbol===selectedCompare)?.name||selectedCompare, data:scaledData, borderColor:'#ffb347', borderWidth:2, pointRadius:0, tension:0.2 });
+        }
+    }
+
+    if (showPrediction && chartDays >= 30) {
+        const pred = await get(`${API}/predict/${selectedSymbol}?days=14`, null);
+        if (pred?.predictions?.length) {
+            pred.predictions.forEach(p => labels.push(p.date));
+            datasets.push({ label:'Prediction', data:[...Array(data.length-1).fill(null), data[data.length-1].close, ...pred.predictions.map(p=>p.predicted)], borderColor:'#ffb347', borderWidth:2, pointRadius:0, borderDash:[6,4], tension:0.2, spanGaps:true });
+            document.getElementById('disclaimer').style.display = 'block';
+        }
+    } else {
+        document.getElementById('disclaimer').style.display = 'none';
+    }
+
+    buildChart(labels, datasets);
+    isUpdating = false;
+}
+
+document.querySelectorAll('.time-btn').forEach(btn => {
+    btn.onclick = () => {
+        chartDays = +btn.dataset.days;
+        document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        draw();
+    };
+});
+
+document.getElementById('compare-mode').onchange = function() {
+    compareMode = this.checked;
+    document.getElementById('compare-select').style.display = compareMode ? 'inline-block' : 'none';
+    if (!compareMode) selectedCompare = null;
+    draw();
+};
+
+document.getElementById('compare-select').onchange = function() {
+    selectedCompare = this.value;
+    draw();
+};
+
+document.getElementById('show-prediction').onchange = function() {
+    showPrediction = this.checked;
+    draw();
+};
+
+async function init() {
+    companies = await get(`${API}/companies`, []);
+    if (!companies.length) return;
+    document.getElementById('compare-select').innerHTML = companies.map(c=>`<option value="${c.symbol}">${c.name}</option>`).join('');
+    selectedSymbol = companies[0].symbol;
+    draw();
+}
+
+init();
+</script>
+</body>
+</html>
