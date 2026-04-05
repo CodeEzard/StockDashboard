@@ -11,7 +11,7 @@ COPY requirements.txt ./
 RUN pip install --upgrade pip && \
 	pip install --no-cache-dir -r requirements.txt
 
-COPY backend ./backend
+COPY . ./backend
 ENV PYTHONPATH=/app
 # Set CA bundle env vars for yfinance/curl_cffi SSL fix
 ENV CURL_CA_BUNDLE=/usr/local/lib/python3.11/site-packages/certifi/cacert.pem
