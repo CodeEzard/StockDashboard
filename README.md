@@ -51,4 +51,4 @@ NSE stock price movement. Pipeline ready for live yfinance data.
 All endpoints are documented via Swagger UI:
 👉 [Live API Docs](https://stockdashboard-tm2y.onrender.com/docs)
 
-![Dashboard](screenshots/dashboard.png)
+![Dashboard](docs/dashboard.png)
