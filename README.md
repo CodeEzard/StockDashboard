@@ -14,7 +14,7 @@ A mini financial data platform built with FastAPI + SQLite + Chart.js.
 
 ## Quick Start
 ```bash
-git clone https://github.com/YOUR_USERNAME/StockDashboard
+git clone https://github.com/CodeEzard/StockDashboard
 cd StockDashboard/backend
 pip install -r requirements.txt
 python mock_data.py
@@ -43,3 +43,12 @@ NSE stock price movement. Pipeline ready for live yfinance data.
 ## Live Demo
 - Frontend: [webURL](https://codeezard.github.io/StockDashboard/)
 - API Docs: [backend](https://stockdashboard-tm2y.onrender.com/docs)
+- Frontend: [https://codeezard.github.io/StockDashboard/](https://codeezard.github.io/StockDashboard/)
+
+
+## API Documentation
+
+All endpoints are documented via Swagger UI:
+👉 [Live API Docs](https://stockdashboard-tm2y.onrender.com/docs)
+
+![Dashboard](screenshots/dashboard.png)
