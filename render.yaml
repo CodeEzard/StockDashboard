@@ -3,6 +3,7 @@ services:
     name: stock-dashboard-backend
     env: docker
     plan: free
+    dockerContext: .
     dockerfilePath: Dockerfile
     healthCheckPath: /companies
     envVars:
