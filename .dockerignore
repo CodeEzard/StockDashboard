@@ -10,6 +10,7 @@ dist/
 .eggs/
 *.egg-info/
 *.db
+!backend/*.db
 .DS_Store
 .vscode/
 .git/
