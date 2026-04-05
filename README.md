@@ -41,5 +41,5 @@ Mock data generated using numpy random walk simulating realistic
 NSE stock price movement. Pipeline ready for live yfinance data.
 
 ## Live Demo
-- Frontend: [YOUR_GITHUB_PAGES_URL](https://codeezard.github.io/StockDashboard/)
-- API Docs: [YOUR_RENDER_URL/docs](https://stockdashboard-tm2y.onrender.com/docs)
+- Frontend: [webURL](https://codeezard.github.io/StockDashboard/)
+- API Docs: [backend](https://stockdashboard-tm2y.onrender.com/docs)
