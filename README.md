@@ -42,8 +42,6 @@ NSE stock price movement. Pipeline ready for live yfinance data.
 
 ## Live Demo
 - Frontend: [https://codeezard.github.io/StockDashboard/](https://codeezard.github.io/StockDashboard/)
-- API Docs: [backend](https://stockdashboard-tm2y.onrender.com/docs)
-
 
 
 ## API Documentation
